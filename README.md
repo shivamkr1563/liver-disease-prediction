@@ -36,8 +36,8 @@ This project implements a machine learning model for predicting liver disease us
 ├── liver_disease_kan.ipynb # Jupyter notebook with model training
 ├── generate_figures.py    # Script to generate plots
 ├── convert_to_onnx.py    # Script to convert PyTorch model to ONNX
-├── streamlit_app.py       # Streamlit web application
-├── requirements_streamlit.txt # Streamlit dependencies (pip)
+├── streamlit_app.py       # Streamlit web application (uses ONNX for deployment)
+├── requirements_streamlit.txt # Streamlit dependencies (includes onnxruntime) (pip)
 ├── environment.yml        # Conda environment for Streamlit Cloud
 ├── packages.txt           # System dependencies for Streamlit Cloud
 ├── ilpd.csv               # Indian Liver Patient Dataset
@@ -138,7 +138,7 @@ To deploy the Streamlit app on Streamlit Cloud:
 
 1. **Prepare your repository:**
    - Ensure all files are committed to Git
-   - The `models/` directory must be included (contains trained model and scaler)
+   - The `models/` directory must be included (contains trained ONNX model and scaler)
    - `environment.yml` should be in the root directory for conda environment
    - `packages.txt` should be in the root directory for system dependencies
 
@@ -150,7 +150,8 @@ To deploy the Streamlit app on Streamlit Cloud:
    - Click "Deploy"
 
 3. **Configuration:**
-   - The app will use the conda environment specified in `environment.yml`
+   - The app uses ONNX Runtime for model inference (no PyTorch dependency)
+   - The conda environment ensures all dependencies are properly installed
    - No additional secrets or environment variables are required
    - The app loads the model on startup for optimal performance
 
