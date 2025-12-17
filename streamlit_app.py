@@ -1,3 +1,20 @@
+"""
+Liver Disease Prediction App using Kolmogorov-Arnold Networks (KAN)
+
+This Streamlit application provides a web interface for predicting liver disease
+based on clinical features using a trained KAN model converted to ONNX format.
+
+Features:
+- Real-time prediction using ONNX Runtime (no PyTorch dependency)
+- User-friendly web interface
+- Risk assessment with color-coded results
+- Input validation and error handling
+
+Author: Generated for liver disease prediction project
+Date: December 17, 2025
+Version: 1.0.0
+"""
+
 import streamlit as st
 import onnxruntime as ort
 import numpy as np
@@ -10,26 +27,19 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Fixed syntax error - try-except block properly structured
-
 # Load model and scaler
 @st.cache_resource
 def load_model_and_scaler():
     MODEL_DIR = Path("models")
-    device = 'cpu'
-
+    
     try:
         scaler = joblib.load(MODEL_DIR / "scaler.pkl")
-
-        # Load ONNX model
         onnx_model_path = MODEL_DIR / "kan_model.onnx"
         session = ort.InferenceSession(str(onnx_model_path))
-
         logger.info("✓ ONNX model and scaler loaded successfully")
         return session, scaler
     except Exception as e:
         logger.error(f"✗ Failed to load model or scaler: {e}")
-        st.error(f"Failed to load model: {e}")
         return None, None
 
 def main():
