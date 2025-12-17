@@ -28,7 +28,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load model and scaler
-@st.cache_resource
 def load_model_and_scaler():
     # Get the directory where this script is located
     script_dir = Path(__file__).parent
