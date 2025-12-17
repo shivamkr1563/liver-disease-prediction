@@ -10,6 +10,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Fixed syntax error - try-except block properly structured
+
 # Load model and scaler
 @st.cache_resource
 def load_model_and_scaler():
