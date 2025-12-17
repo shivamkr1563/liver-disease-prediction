@@ -25,6 +25,7 @@ def load_model_and_scaler():
 
         logger.info("✓ ONNX model and scaler loaded successfully")
         return session, scaler
+    except Exception as e:
         logger.error(f"✗ Failed to load model or scaler: {e}")
         st.error(f"Failed to load model: {e}")
         return None, None
