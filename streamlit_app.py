@@ -30,7 +30,9 @@ logger = logging.getLogger(__name__)
 # Load model and scaler
 @st.cache_resource
 def load_model_and_scaler():
-    MODEL_DIR = Path("models")
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent
+    MODEL_DIR = script_dir / "models"
     
     try:
         scaler = joblib.load(MODEL_DIR / "scaler.pkl")
