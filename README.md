@@ -155,6 +155,8 @@ The deployed app will be available at a URL like `https://your-app-name.streamli
 
 **Note:** Streamlit Cloud has usage limits for free tier. For production use, consider upgrading to a paid plan or deploying to other platforms like Heroku, AWS, or Google Cloud.
 
+**Important:** If you encounter PyTorch installation issues during deployment, try redeploying the app after the latest commit, as the requirements have been optimized for Streamlit Cloud compatibility.
+
 ## API Endpoints
 
 - `POST /predict`: Accepts patient data and returns prediction
