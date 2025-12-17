@@ -36,6 +36,7 @@ This project implements a machine learning model for predicting liver disease us
 ├── generate_figures.py    # Script to generate plots
 ├── streamlit_app.py       # Streamlit web application
 ├── requirements_streamlit.txt # Streamlit dependencies
+├── packages.txt           # System dependencies for Streamlit Cloud
 ├── ilpd.csv               # Indian Liver Patient Dataset
 ├── kaggle_liver.csv       # Kaggle liver disease dataset
 ├── start.ps1              # PowerShell script to start services
@@ -136,6 +137,7 @@ To deploy the Streamlit app on Streamlit Cloud:
    - Ensure all files are committed to Git
    - The `models/` directory must be included (contains trained model and scaler)
    - `requirements_streamlit.txt` should be in the root directory
+   - `packages.txt` should be in the root directory for system dependencies
 
 2. **Deploy on Streamlit Cloud:**
    - Go to [share.streamlit.io](https://share.streamlit.io)
