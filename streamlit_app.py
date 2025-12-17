@@ -1,5 +1,5 @@
 import streamlit as st
-import torch
+import onnxruntime as ort
 import numpy as np
 import pandas as pd
 import joblib
@@ -10,108 +10,21 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Define KAN Model Architecture (matching notebook implementation exactly)
-class SplineActivation(torch.nn.Module):
-    def __init__(self, input_dim, n_basis=8):
-        super().__init__()
-        self.input_dim = input_dim
-        self.n_basis = n_basis
-        # Learnable parameters for Gaussian RBF (separate for each input feature)
-        self.centers = torch.nn.Parameter(torch.linspace(-3, 3, n_basis).unsqueeze(0).repeat(input_dim, 1))
-        width_val = (6 / (n_basis - 1)) if n_basis > 1 else 1.0
-        self.widths = torch.nn.Parameter(torch.ones(input_dim, n_basis) * width_val)
-        self.weights = torch.nn.Parameter(torch.randn(input_dim, n_basis) * 0.01)
-
-    def forward(self, x):
-        # x: (batch_size, input_dim)
-        x = x.unsqueeze(-1)  # (batch_size, input_dim, 1)
-        centers = self.centers.unsqueeze(0)  # (1, input_dim, n_basis)
-        widths = self.widths.unsqueeze(0)  # (1, input_dim, n_basis)
-        weights = self.weights.unsqueeze(0)  # (1, input_dim, n_basis)
-
-        # Gaussian RBF
-        rbf = torch.exp(-0.5 * ((x - centers) / widths) ** 2)  # (batch_size, input_dim, n_basis)
-        output = (rbf * weights).sum(dim=-1)  # (batch_size, input_dim)
-        return output
-
-class KANLayer(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, n_basis=8):
-        super().__init__()
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.n_basis = n_basis
-
-        # Spline activation for all features
-        self.spline_activation = SplineActivation(input_dim, n_basis)
-        self.linear = torch.nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        # Apply spline activation to all features at once
-        x_splined = self.spline_activation(x)  # (batch_size, input_dim)
-        output = self.linear(x_splined)  # (batch_size, output_dim)
-        return output
-
-class KANModel(torch.nn.Module):
-    def __init__(self, input_dim=10, hidden_dim=64, n_layers=3, n_basis=8, dropout=0.2):
-        super().__init__()
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.n_layers = n_layers
-        self.n_basis = n_basis
-
-        # Build KAN layers
-        layers = []
-
-        # First KAN layer: input_dim -> hidden_dim
-        layers.append(KANLayer(input_dim, hidden_dim, n_basis))
-        layers.append(torch.nn.ReLU())
-        layers.append(torch.nn.Dropout(dropout))
-
-        # Hidden KAN layers: hidden_dim -> hidden_dim
-        for _ in range(n_layers - 1):
-            layers.append(KANLayer(hidden_dim, hidden_dim, n_basis))
-            layers.append(torch.nn.ReLU())
-            layers.append(torch.nn.Dropout(dropout))
-
-        # Combine all layers
-        self.kan_layers = torch.nn.Sequential(*layers)
-
-        # Final output layer: hidden_dim -> 1 (binary classification)
-        self.output_layer = torch.nn.Linear(hidden_dim, 1)
-
-    def forward(self, x):
-        # Pass through KAN layers
-        x = self.kan_layers(x)
-
-        # Final output layer
-        logits = self.output_layer(x)
-
-        return logits
-
 # Load model and scaler
 @st.cache_resource
 def load_model_and_scaler():
     MODEL_DIR = Path("models")
-    device = torch.device('cpu')
+    device = 'cpu'
 
     try:
         scaler = joblib.load(MODEL_DIR / "scaler.pkl")
 
-        # Load KAN model
-        model = KANModel(input_dim=10, hidden_dim=64, n_layers=3, n_basis=8, dropout=0.2)
-        checkpoint = torch.load(MODEL_DIR / "kan_model.pth", map_location=device)
+        # Load ONNX model
+        onnx_model_path = MODEL_DIR / "kan_model.onnx"
+        session = ort.InferenceSession(str(onnx_model_path))
 
-        # Handle different save formats
-        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-
-        model.eval()
-
-        logger.info("✓ KAN model and scaler loaded successfully")
-        return model, scaler
-    except Exception as e:
+        logger.info("✓ ONNX model and scaler loaded successfully")
+        return session, scaler
         logger.error(f"✗ Failed to load model or scaler: {e}")
         st.error(f"Failed to load model: {e}")
         return None, None
@@ -123,9 +36,9 @@ def main():
     """)
 
     # Load model and scaler
-    model, scaler = load_model_and_scaler()
+    session, scaler = load_model_and_scaler()
 
-    if model is None or scaler is None:
+    if session is None or scaler is None:
         st.error("Model could not be loaded. Please check the models directory.")
         return
 
@@ -163,14 +76,19 @@ def main():
         # Scale features
         features_scaled = scaler.transform(features)
 
-        # Make prediction
-        with torch.no_grad():
-            x_tensor = torch.FloatTensor(features_scaled)
-            logits = model(x_tensor)
-            probabilities = torch.sigmoid(logits).cpu().numpy().flatten()
-            probability = float(probabilities[0])
-            prediction = int(probability >= 0.5)
-            confidence = float(max(probability, 1 - probability))
+        # Make prediction using ONNX
+        # Convert to numpy array and ensure correct shape
+        x_numpy = np.array(features_scaled, dtype=np.float32)
+
+        # Run inference
+        ort_inputs = {session.get_inputs()[0].name: x_numpy}
+        logits = session.run(None, ort_inputs)[0]
+
+        # Apply sigmoid to get probabilities
+        probabilities = 1 / (1 + np.exp(-logits))  # sigmoid
+        probability = float(probabilities.flatten()[0])  # Probability of disease
+        prediction = int(probability >= 0.5)
+        confidence = float(max(probability, 1 - probability))
 
         # Determine risk level
         if probability < 0.3:

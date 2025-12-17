@@ -27,15 +27,18 @@ This project implements a machine learning model for predicting liver disease us
 │   ├── package.json
 │   └── vite.config.js
 ├── models/                 # Trained models and metadata
-│   ├── kan_model.pth      # Trained KAN model
+│   ├── kan_model.pth      # Trained KAN model (PyTorch)
+│   ├── kan_model.onnx     # Trained KAN model (ONNX format)
 │   ├── metadata.json      # Model metadata
 │   ├── detailed_evaluation_metrics.csv
 │   └── model_comparison.csv
 ├── plots/                  # Generated visualization plots
 ├── liver_disease_kan.ipynb # Jupyter notebook with model training
 ├── generate_figures.py    # Script to generate plots
+├── convert_to_onnx.py    # Script to convert PyTorch model to ONNX
 ├── streamlit_app.py       # Streamlit web application
-├── requirements_streamlit.txt # Streamlit dependencies
+├── requirements_streamlit.txt # Streamlit dependencies (pip)
+├── environment.yml        # Conda environment for Streamlit Cloud
 ├── packages.txt           # System dependencies for Streamlit Cloud
 ├── ilpd.csv               # Indian Liver Patient Dataset
 ├── kaggle_liver.csv       # Kaggle liver disease dataset
@@ -136,20 +139,22 @@ To deploy the Streamlit app on Streamlit Cloud:
 1. **Prepare your repository:**
    - Ensure all files are committed to Git
    - The `models/` directory must be included (contains trained model and scaler)
-   - `requirements_streamlit.txt` should be in the root directory
+   - `environment.yml` should be in the root directory for conda environment
    - `packages.txt` should be in the root directory for system dependencies
 
 2. **Deploy on Streamlit Cloud:**
    - Go to [share.streamlit.io](https://share.streamlit.io)
    - Connect your GitHub account and select this repository
    - Set the main file path to `streamlit_app.py`
-   - Set the requirements file path to `requirements_streamlit.txt`
+   - **Important:** In advanced settings, set the "Environment file" to `environment.yml`
    - Click "Deploy"
 
 3. **Configuration:**
-   - The app will automatically detect and use the correct Python version
+   - The app will use the conda environment specified in `environment.yml`
    - No additional secrets or environment variables are required
    - The app loads the model on startup for optimal performance
+
+**Alternative:** If conda doesn't work, you can try using `requirements_streamlit.txt` instead by setting the requirements file path in the deployment settings.
 
 The deployed app will be available at a URL like `https://your-app-name.streamlit.app`
 

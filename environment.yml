@@ -1,0 +1,14 @@
+name: liver-disease-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - scikit-learn=1.3.2
+  - pandas=2.1.3
+  - numpy=1.26.2
+  - joblib=1.3.2
+  - pip
+  - pip:
+    - streamlit>=1.28.0
+    - onnxruntime
